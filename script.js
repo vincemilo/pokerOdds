@@ -1,17 +1,15 @@
 // ----- Card Data -----
-const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+const ranks = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
 const suits = ['♥', '♦', '♣', '♠'];
 
 function suitColor(suit) {
     return (suit === '♥' || suit === '♦') ? 'suit-red' : 'suit-black';
 }
 
-// Simple duplicate check
 function isEqual(c1, c2) {
     return c1.rank === c2.rank && c1.suit === c2.suit;
 }
 
-// Generate unique cards - SIMPLE VERSION
 function generateUniqueCards(count, excludeCards = []) {
     const cards = [];
     while (cards.length < count) {
@@ -19,49 +17,59 @@ function generateUniqueCards(count, excludeCards = []) {
             rank: ranks[Math.floor(Math.random() * ranks.length)],
             suit: suits[Math.floor(Math.random() * 4)]
         };
-        // Check against exclude list and already generated cards
         const isDuplicate = [...excludeCards, ...cards].some(c => isEqual(c, newCard));
-        if (!isDuplicate) {
-            cards.push(newCard);
-        }
+        if (!isDuplicate) cards.push(newCard);
     }
     return cards;
 }
 
-// ----- OUTS DETECTION -----
+// ----- CORRECTED OUTS DETECTION -----
 function countFlushOuts(hand, board) {
     let all = [...hand, ...board];
-    let suitCount = { '♥': 0, '♦': 0, '♣': 0, '♠': 0 };
+    let suitCount = { '♥':0, '♦':0, '♣':0, '♠':0 };
     all.forEach(c => suitCount[c.suit]++);
-    let maxSuit = Math.max(...Object.values(suitCount));
-    return maxSuit === 4 ? 9 : 0;
+    
+    for (let suit in suitCount) {
+        let count = suitCount[suit];
+        if (count >= 3) {
+            // 13 total cards per suit minus visible = remaining outs
+            return 13 - count;
+        }
+    }
+    return 0;
 }
 
 function getStraightOuts(hand, board) {
     let allCards = [...hand, ...board];
-    let rankIndices = new Set();
-    allCards.forEach(c => {
-        let idx = ranks.indexOf(c.rank);
-        if (idx !== -1) rankIndices.add(idx);
-    });
-    let sorted = [...rankIndices].sort((a, b) => a - b);
+    let rankSet = new Set();
+    allCards.forEach(c => rankSet.add(ranks.indexOf(c.rank)));
+    let sorted = [...rankSet].sort((a,b) => a-b);
+    
     if (sorted.length < 4) return 0;
-
-    // Open-ended straight draw
+    
+    // Check for open-ended (4 consecutive ranks)
     for (let i = 0; i <= sorted.length - 4; i++) {
-        if (sorted[i + 3] - sorted[i] === 3) {
-            let lowOut = sorted[i] - 1;
-            let highOut = sorted[i + 3] + 1;
+        if (sorted[i+3] - sorted[i] === 3) {
+            let lowComplete = sorted[i] - 1;
+            let highComplete = sorted[i+3] + 1;
             let outs = 0;
-            if (lowOut >= 0 && !rankIndices.has(lowOut)) outs += 4;
-            if (highOut <= 12 && !rankIndices.has(highOut)) outs += 4;
-            if (outs >= 4) return 8;
+            if (lowComplete >= 0 && !rankSet.has(lowComplete)) outs += 4;
+            if (highComplete <= 12 && !rankSet.has(highComplete)) outs += 4;
+            if (outs === 8) return 8;
         }
     }
-
-    // Gutshot straight draw
+    
+    // Check for gutshot (4 cards with one gap)
     for (let i = 0; i <= sorted.length - 4; i++) {
-        if (sorted[i + 3] - sorted[i] === 4) return 4;
+        let totalGap = sorted[i+3] - sorted[i];
+        if (totalGap === 4) {
+            // Find the missing internal rank
+            for (let k = sorted[i] + 1; k < sorted[i+3]; k++) {
+                if (!rankSet.has(k)) {
+                    return 4;
+                }
+            }
+        }
     }
     return 0;
 }
@@ -70,57 +78,90 @@ function calculateOuts(hand, board) {
     let flush = countFlushOuts(hand, board);
     let straight = getStraightOuts(hand, board);
     let total = flush + straight;
-
+    
     if (total === 0) {
         let hasPair = hand.some(h => board.some(b => b.rank === h.rank));
-        total = hasPair ? 2 : 6;
+        let overcardCount = hand.filter(h => {
+            let hIdx = ranks.indexOf(h.rank);
+            return board.every(b => hIdx > ranks.indexOf(b.rank));
+        }).length;
+        
+        if (hasPair) total = 2;
+        else if (overcardCount === 2) total = 6;
+        else if (overcardCount === 1) total = 3;
+        else total = 0;
     }
     return Math.min(total, 15);
 }
 
-// Generate hand + flop with decent outs
-function generatePlayableScenario() {
-    for (let attempts = 0; attempts < 20; attempts++) {
-        // Generate 2 hand cards
-        let hand = generateUniqueCards(2);
-        // Generate 3 flop cards (excluding the hand cards)
-        let board = generateUniqueCards(3, hand);
-        
-        let outs = calculateOuts(hand, board);
-
-        if (outs >= 4 && outs <= 14) {
-            let pot = Math.floor(Math.random() * 1600) + 700;
-            let betOptions = [0.35, 0.45, 0.6, 0.75, 0.9];
-            let fraction = betOptions[Math.floor(Math.random() * betOptions.length)];
-            let bet = Math.floor(pot * fraction);
-            if (bet < 60) bet = 80;
-            
-            console.log('Generated:', { hand, board, outs }); // Debug log
-            return { hand, board, outs, pot, bet };
+// ----- EXPLANATION FUNCTION (Now shows exact flush math) -----
+function explainOuts(hand, board, outs) {
+    let all = [...hand, ...board];
+    let suitCount = { '♥':0, '♦':0, '♣':0, '♠':0 };
+    all.forEach(c => suitCount[c.suit]++);
+    
+    let flushOuts = 0;
+    let flushSuit = null;
+    let visibleFlush = 0;
+    
+    for (let suit in suitCount) {
+        if (suitCount[suit] >= 3) {
+            flushOuts = 13 - suitCount[suit];
+            flushSuit = suit;
+            visibleFlush = suitCount[suit];
+            break;
         }
     }
     
-    // Fallback - guaranteed to work
-    let hand = generateUniqueCards(2);
-    let board = generateUniqueCards(3, hand);
-    return {
-        hand, board,
-        outs: calculateOuts(hand, board),
-        pot: 1200,
-        bet: 600
-    };
+    let straightOuts = getStraightOuts(hand, board);
+    let hasPair = hand.some(h => board.some(b => b.rank === h.rank));
+    let overcardCount = hand.filter(h => {
+        let hIdx = ranks.indexOf(h.rank);
+        return board.every(b => hIdx > ranks.indexOf(b.rank));
+    }).length;
+    
+    let explanation = [];
+    
+    if (flushOuts > 0) {
+        explanation.push(`♣️ Flush draw: ${flushOuts} outs (${visibleFlush} ${flushSuit} visible, ${13 - visibleFlush} remain in deck)`);
+    }
+    
+    if (straightOuts === 8) {
+        explanation.push(`📏 Open-ended straight: 8 outs`);
+    } else if (straightOuts === 4) {
+        explanation.push(`📏 Gutshot straight: 4 outs`);
+    }
+    
+    if (hasPair && flushOuts === 0 && straightOuts === 0) {
+        explanation.push(`🃏 Paired hand: 2 outs to improve`);
+    } else if (overcardCount === 2 && !hasPair && flushOuts === 0 && straightOuts === 0) {
+        explanation.push(`⬆️ Two overcards: 6 outs`);
+    } else if (overcardCount === 1 && !hasPair && flushOuts === 0 && straightOuts === 0) {
+        explanation.push(`⬆️ One overcard: 3 outs`);
+    } else if (flushOuts === 0 && straightOuts === 0 && !hasPair && overcardCount === 0) {
+        explanation.push(`⚠️ Complete miss - 0 outs`);
+    }
+    
+    if (explanation.length === 0 && outs > 0) {
+        explanation.push(`🎯 Mixed draw: ${outs} total outs`);
+    }
+    
+    return explanation.join(' · ');
 }
 
-// ----- RENDER CARDS (with debug logging) -----
+// ----- RENDER & GAME LOGIC -----
+let currentHand = null;
+let currentStep = 1;
+let correctOuts = 0;
+let correctEquity = 0;
+let correctPotOdds = 0;
+let currentExplanation = "";
+
 function renderCards(hand, board) {
     const handContainer = document.getElementById('handCards');
     const boardContainer = document.getElementById('boardCards');
-    
     handContainer.innerHTML = '';
     boardContainer.innerHTML = '';
-    
-    console.log('Rendering hand:', hand.length, 'cards');
-    console.log('Rendering board:', board.length, 'cards');
     
     hand.forEach(c => {
         let div = document.createElement('div');
@@ -135,23 +176,31 @@ function renderCards(hand, board) {
         div.innerHTML = `<div class="card-rank">${c.rank}</div><div class="card-suit ${suitColor(c.suit)}">${c.suit}</div>`;
         boardContainer.appendChild(div);
     });
-    
-    console.log('Hand container children:', handContainer.children.length);
-    console.log('Board container children:', boardContainer.children.length);
 }
 
-// ----- GAME STATE -----
-let currentHand = null;
-let currentStep = 1;
-let correctOuts = 0;
-let correctEquity = 0;
-let correctPotOdds = 0;
+function generatePlayableScenario() {
+    for (let attempts = 0; attempts < 25; attempts++) {
+        let hand = generateUniqueCards(2);
+        let board = generateUniqueCards(3, hand);
+        let outs = calculateOuts(hand, board);
+        if (outs >= 4 && outs <= 14) {
+            let pot = Math.floor(Math.random() * 1600) + 700;
+            let betOptions = [0.35, 0.45, 0.6, 0.75, 0.9];
+            let fraction = betOptions[Math.floor(Math.random() * betOptions.length)];
+            let bet = Math.floor(pot * fraction);
+            if (bet < 60) bet = 80;
+            return { hand, board, outs, pot, bet };
+        }
+    }
+    let hand = generateUniqueCards(2);
+    let board = generateUniqueCards(3, hand);
+    return { hand, board, outs: calculateOuts(hand, board), pot: 1200, bet: 600 };
+}
 
 function updateStepUI() {
     document.getElementById('step1Label').classList.remove('active');
     document.getElementById('step2Label').classList.remove('active');
     document.getElementById('step3Label').classList.remove('active');
-
     if (currentStep === 1) document.getElementById('step1Label').classList.add('active');
     else if (currentStep === 2) document.getElementById('step2Label').classList.add('active');
     else document.getElementById('step3Label').classList.add('active');
@@ -162,7 +211,7 @@ function resetQuizToStep1() {
     updateStepUI();
     document.getElementById('questionText').innerHTML = `🔎 How many OUTS do you have?<br><span style="font-size:0.9rem;">(flush / straight draw, overcards)</span>`;
     document.getElementById('userAnswer').value = '';
-    document.getElementById('feedbackMsg').innerHTML = '🤔 Count your outs from the hand + flop.';
+    document.getElementById('feedbackMsg').innerHTML = `🤔 Count your outs.<br><span style="font-size:0.8rem; color:#dbb46a;">📖 ${currentExplanation}</span>`;
     document.getElementById('feedbackMsg').style.background = "#0e1a12";
 }
 
@@ -171,12 +220,13 @@ function loadNewHand() {
     renderCards(currentHand.hand, currentHand.board);
     document.getElementById('potDisplay').innerHTML = `$${currentHand.pot}`;
     document.getElementById('betDisplay').innerHTML = `$${currentHand.bet}`;
-
+    
     correctOuts = currentHand.outs;
     correctEquity = Math.min(99, correctOuts * 4);
     let requiredOdds = (currentHand.bet / (currentHand.pot + currentHand.bet)) * 100;
     correctPotOdds = Math.round(requiredOdds * 10) / 10;
-
+    
+    currentExplanation = explainOuts(currentHand.hand, currentHand.board, correctOuts);
     resetQuizToStep1();
     document.getElementById('submitBtn').disabled = false;
 }
@@ -187,52 +237,52 @@ function handleSubmit() {
         document.getElementById('feedbackMsg').innerHTML = '❌ Please enter a number.';
         return;
     }
-
+    
     const feedbackDiv = document.getElementById('feedbackMsg');
-
+    
     if (currentStep === 1) {
         if (Math.abs(inputVal - correctOuts) < 0.1) {
-            feedbackDiv.innerHTML = `✅ Correct! ${correctOuts} outs. Now calculate EQUITY using Rule of 4: ${correctOuts} × 4 = ?`;
+            feedbackDiv.innerHTML = `✅ Correct! ${correctOuts} outs. ${currentExplanation}<br>📐 Now calculate EQUITY: ${correctOuts} × 4 = ?`;
             feedbackDiv.style.background = "#1f543e";
             currentStep = 2;
             updateStepUI();
             document.getElementById('questionText').innerHTML = `🧮 What is your EQUITY (%)?<br><span style="font-size:0.85rem;">(Rule of 4 on flop: outs × 4)</span>`;
             document.getElementById('userAnswer').value = '';
         } else {
-            feedbackDiv.innerHTML = `❌ Wrong. You have ${correctOuts} outs. Count flush draws (9) + straight draws (4 or 8). Try again.`;
+            feedbackDiv.innerHTML = `❌ Wrong. ${currentExplanation}<br>You entered ${inputVal}. Correct outs: ${correctOuts}. Try again.`;
             feedbackDiv.style.background = "#6b2e25";
         }
     } else if (currentStep === 2) {
         if (Math.abs(inputVal - correctEquity) < 1.5) {
-            feedbackDiv.innerHTML = `✅ Great! ${correctEquity}% equity. Now last step: pot odds percentage to call.`;
+            feedbackDiv.innerHTML = `✅ Great! ${correctEquity}% equity. Now pot odds.`;
             feedbackDiv.style.background = "#1f543e";
             currentStep = 3;
             updateStepUI();
             document.getElementById('questionText').innerHTML = `🎲 Required pot odds = (bet) / (pot + bet) × 100<br><span style="font-size:1rem;">Bet $${currentHand.bet} into $${currentHand.pot}: what % do you need?</span>`;
             document.getElementById('userAnswer').value = '';
         } else {
-            feedbackDiv.innerHTML = `❌ Equity = outs × 4 → ${correctOuts} × 4 = ${correctEquity}%. You put ${inputVal}%. Remember rule of 4 on flop!`;
+            feedbackDiv.innerHTML = `❌ Equity = outs × 4 → ${correctOuts} × 4 = ${correctEquity}%. You put ${inputVal}%. Remember: Rule of 4 on flop!`;
             feedbackDiv.style.background = "#6b2e25";
         }
     } else if (currentStep === 3) {
         if (Math.abs(inputVal - correctPotOdds) < 1.2) {
             let decision = correctEquity >= correctPotOdds ? 'CALL' : 'FOLD';
-            feedbackDiv.innerHTML = `🎉 PERFECT! Required pot odds = ${correctPotOdds}%. Your equity ${correctEquity}% is ${correctEquity >= correctPotOdds ? '≥' : '<'} required → ${decision}. Click NEW HAND.`;
+            feedbackDiv.innerHTML = `🎉 Perfect! Required pot odds = ${correctPotOdds}%. Your equity ${correctEquity}% → ${decision}. Click NEW HAND.`;
             feedbackDiv.style.background = "#2a6b45";
             document.getElementById('submitBtn').disabled = true;
         } else {
-            feedbackDiv.innerHTML = `❌ Pot odds = bet ÷ (pot+bet) = ${currentHand.bet} / (${currentHand.pot}+${currentHand.bet}) = ${correctPotOdds}%. You answered ${inputVal}%. Formula: bet / (pot+bet) × 100.`;
+            feedbackDiv.innerHTML = `❌ Pot odds = ${currentHand.bet} / (${currentHand.pot}+${currentHand.bet}) × 100 = ${correctPotOdds}%. You answered ${inputVal}%.`;
             feedbackDiv.style.background = "#6b2e25";
         }
     }
 }
 
-// ----- Event Listeners -----
+// ----- EVENT LISTENERS -----
 document.getElementById('submitBtn').addEventListener('click', handleSubmit);
 document.getElementById('nextBtn').addEventListener('click', () => loadNewHand());
 document.getElementById('userAnswer').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') handleSubmit();
 });
 
-// ----- Initialize -----
+// ----- INITIALIZE -----
 loadNewHand();
