@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Poker Drills: Pot Odds & Equity</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none; /* slightly cleaner for buttons */
+        }
+
+        body {
+            background: linear-gradient(145deg, #1a472a 0%, #0e2a1a 100%);
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* main card container */
+        .game-container {
+            max-width: 650px;
+            width: 100%;
+            background: #2c2c2c;
+            border-radius: 48px;
+            box-shadow: 0 25px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            padding: 20px 20px 30px;
+            transition: all 0.2s ease;
+        }
+
+        /* felt area for cards */
+        .felt {
+            background: #1e3a2f;
+            border-radius: 36px;
+            padding: 20px 12px;
+            box-shadow: inset 0 0 0 2px #5b8c6f, inset 0 0 0 6px #2b5a42, 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .section-title {
+            color: #f7e05e;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 2px;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            margin-top: 8px;
+            text-shadow: 0 1px 0 #5a3e1a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title span {
+            background: #00000055;
+            padding: 4px 12px;
+            border-radius: 60px;
+            backdrop-filter: blur(2px);
+        }
+
+        /* CSS Grid for cards */
+        .card-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 16px;
+            margin: 15px 0 20px;
+        }
+
+        .hand-group, .board-group {
+            background: #1f2a1b80;
+            border-radius: 28px;
+            padding: 12px 16px;
+            backdrop-filter: blur(4px);
+        }
+
+        .hand-group .card-row {
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+        }
+
+        .board-group .card-row {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .poker-card {
+            background: white;
+            width: 80px;
+            height: 110px;
+            border-radius: 12px;
+            box-shadow: -2px 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: 800;
+            font-size: 2.3rem;
+            position: relative;
+            transition: transform 0.1s ease;
+        }
+
+        /* responsive cards on mobile */
+        @media (max-width: 550px) {
+            .poker-card {
+                width: 65px;
+                height: 92px;
+                font-size: 1.8rem;
+            }
+            .card-suit-small {
+                font-size: 1.6rem;
+            }
+        }
+
+        .card-rank {
+            font-size: 2.3rem;
+            line-height: 1;
+            margin-top: 10px;
+        }
+
+        .card-suit {
+            font-size: 2.6rem;
+            margin-bottom: 8px;
+        }
+
+        /* red suits */
+        .suit-red {
+            color: #c33;
+        }
+
+        .suit-black {
+            color: #222;
+        }
+
+        /* pot odds area */
+        .pot-odds-panel {
+            background: #0e1a12e0;
+            border-radius: 32px;
+            padding: 18px 16px;
+            margin: 20px 0;
+            border: 1px solid #e2c28b;
+            box-shadow: inset 0 0 6px #00000033, 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            background: #00000055;
+            padding: 12px 18px;
+            border-radius: 60px;
+            margin-bottom: 12px;
+            font-weight: bold;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pot-chip, .bet-chip {
+            background: #f3d382;
+            padding: 6px 16px;
+            border-radius: 40px;
+            color: #2a2418;
+            font-size: 1.2rem;
+        }
+
+        .question {
+            font-size: 1.45rem;
+            font-weight: bold;
+            background: #231f1ac9;
+            padding: 14px;
+            border-radius: 44px;
+            text-align: center;
+            margin: 15px 0;
+            color: #ffeaaf;
+        }
+
+        .answer-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .action-btn {
+            background: #32281a;
+            border: none;
+            font-size: 1.3rem;
+            font-weight: bold;
+            padding: 12px 28px;
+            border-radius: 60px;
+            color: #ffecb3;
+            cursor: pointer;
+            transition: 0.07s linear;
+            box-shadow: 0 4px 0 #0f0e0c;
+        }
+
+        .action-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #0f0e0c;
+        }
+
+        .correct-btn {
+            background: #2d6a4f;
+            color: white;
+            box-shadow: 0 4px 0 #1b3b2c;
+        }
+
+        .wrong-btn {
+            background: #9d3b2b;
+            box-shadow: 0 4px 0 #5e2016;
+        }
+
+        .feedback {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 14px;
+            background: #11180ec9;
+            border-radius: 48px;
+            margin-top: 16px;
+            backdrop-filter: blur(8px);
+        }
+
+        .next-btn {
+            background: #cfb27c;
+            color: #1d2c1b;
+            width: 100%;
+            margin-top: 20px;
+            font-weight: bold;
+            padding: 14px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: 0.1s linear;
+            box-shadow: 0 4px 0 #6b4e2a;
+        }
+
+        .next-btn:active {
+            transform: translateY(2px);
+        }
+
+        .small-note {
+            font-size: 0.75rem;
+            text-align: center;
+            margin-top: 24px;
+            color: #bbaa7a;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #b99f62;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="felt">
+        <div class="section-title"><span>🎴 YOUR HAND</span></div>
+        <div class="hand-group">
+            <div class="card-row" id="handCards">
+                <!-- dynamic cards go here -->
+            </div>
+        </div>
+
+        <div class="section-title"><span>🌊 THE FLOP</span></div>
+        <div class="board-group">
+            <div class="card-row" id="boardCards">
+                <!-- flop cards -->
+            </div>
+        </div>
+
+        <div class="pot-odds-panel">
+            <div class="info-row">
+                <span>💰 POT SIZE</span>
+                <span class="pot-chip" id="potSize">0</span>
+            </div>
+            <div class="info-row">
+                <span>⚡ BET TO CALL</span>
+                <span class="bet-chip" id="betAmount">0</span>
+            </div>
+            <div class="question" id="questionText">
+                ❓ Do you have enough equity to call?
+            </div>
+            <div class="answer-buttons">
+                <button class="action-btn correct-btn" id="yesBtn">✅ YES, call</button>
+                <button class="action-btn wrong-btn" id="noBtn">❌ NO, fold</button>
+            </div>
+            <div class="feedback" id="feedbackMsg">
+                👆 Click YES or NO to test your pot odds.
+            </div>
+        </div>
+        <button class="next-btn" id="nextBtn">🔄 NEW HAND</button>
+        <div class="small-note">
+            💡 Rule of 2 & 4: multiply outs by 4 on flop → equity % <br>
+            📐 Need equity > (bet / (pot+bet)) to profitably call
+        </div>
+    </div>
+    <footer>⚡ fundamental drill · random hand & flop generator</footer>
+</div>
+
+<script>
+    // ---------- Poker Data ----------
+    const ranks = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
+    const suits = ['♥', '♦', '♣', '♠'];
+    const suitColor = (suit) => (suit === '♥' || suit === '♦') ? 'suit-red' : 'suit-black';
+
+    // mapping for flush draws and straight draws (heuristic)
+    // we'll generate random hand + random flop and identify "outs" for common draws
+    // to make learning practical, we will simulate realistic drawing hands
+    function randomCard() {
+        const rank = ranks[Math.floor(Math.random() * ranks.length)];
+        const suit = suits[Math.floor(Math.random() * suits.length)];
+        return { rank, suit };
+    }
+
+    // check if cards are identical (rank+suit)
+    function isEqual(c1, c2) {
+        return c1.rank === c2.rank && c1.suit === c2.suit;
+    }
+
+    // generate unique cards (no duplicates)
+    function generateUniqueCards(count, exclude = []) {
+        const cards = [...exclude];
+        while (cards.length < count) {
+            let newCard = randomCard();
+            let duplicate = false;
+            for (let c of cards) {
+                if (isEqual(c, newCard)) { duplicate = true; break; }
+            }
+            if (!duplicate) cards.push(newCard);
+        }
+        return cards.slice(exclude.length);
+    }
+
+    // helper: detect flush draw outs (need 2 of same suit in hand, 2 of same suit on board)
+    function countFlushDrawOuts(hand, board) {
+        const allCards = [...hand, ...board];
+        const suitCount = { '♥':0, '♦':0, '♣':0, '♠':0 };
+        for (let card of allCards) {
+            suitCount[card.suit]++;
+        }
+        // we have 4 cards on flop (hand 2 + flop 3) = 5 cards total? wait flop 3 cards + 2 hole = 5 indeed
+        // but for flush draw after flop, we check if we have 4 of same suit
+        let maxSuit = Math.max(...Object.values(suitCount));
+        if (maxSuit === 4) {
+            // we have 4 of a suit, 9 outs (13 total in suit - 4 already seen)
+            return 9;
+        }
+        return 0;
+    }
+
+    // simple straight draw detection: this is a trainer heuristic.
+    // we detect open-ended straight draws (8 outs) or gutshots (4 outs) by looking at ranks
+    function getStraightOuts(hand, board) {
+        const allCards = [...hand, ...board];
+        let rankSet = new Set();
+        let rankValues = [];
+        for (let card of allCards) {
+            let rankIdx = ranks.indexOf(card.rank);
+            if (rankIdx !== -1) rankSet.add(rankIdx);
+        }
+        if (rankSet.size < 4) return 0;
+        let sortedRanks = [...rankSet].sort((a,b)=>a-b);
+        // check for open ended (4 consecutive ranks with possible two endpoints to make 5)
+        let openEnded = false;
+        for (let i = 0; i <= sortedRanks.length-4; i++) {
+            if (sortedRanks[i+3] - sortedRanks[i] === 3) {
+                // four consecutive e.g. 5,6,7,8  -> outs for 4 and 9
+                let low = sortedRanks[i]-1;
+                let high = sortedRanks[i+3]+1;
+                let outs = 0;
+                if (low >= 0 && !rankSet.has(low)) outs += 4;   // 4 cards of that rank?
+                if (high <= 12 && !rankSet.has(high)) outs += 4;
+                if (outs >= 4) openEnded = true;
+                if(openEnded) return 8;
+            }
+        }
+        // gutshot: check for 4 cards missing inside rank (3 distance but missing one inside)
+        for (let i = 0; i <= sortedRanks.length-4; i++) {
+            let diff = sortedRanks[i+3] - sortedRanks[i];
+            if(diff === 4) {
+                // missing middle card e.g., 5,6,8,9 -> missing 7 = one gap
+                return 4;
+            }
+        }
+        return 0;
+    }
+
+    // count total drawing outs (simplified for practice)
+    function calculateOuts(hand, board) {
+        let outs = 0;
+        let flush = countFlushDrawOuts(hand, board);
+        let straight = getStraightOuts(hand, board);
+        outs = flush + straight;
+        if (outs === 0) {
+            // sometimes pair+? but we'll set default small outs if overcard type (just for quiz)
+            let hasPair = false;
+            let handRanks = hand.map(c=>c.rank);
+            for(let br of board){
+                if(handRanks.includes(br.rank)) hasPair = true;
+            }
+            if(!hasPair) outs = 6;  // overcards approx 6 outs
+            else outs = 2;           // weak pair improvement
+        }
+        return Math.min(outs, 15);
+    }
+    
+    // generate random hand but sometimes favor drawing potential, mix for realism
+    function generateDrawHand() {
+        let hand = generateUniqueCards(2);
+        let board = generateUniqueCards(3, hand);
+        let outsRaw = calculateOuts(hand, board);
+        // make sure it's not boring (outs between 4 and 12)
+        if(outsRaw < 4 || outsRaw > 12) {
+            // try to adjust by forcing suited connectors for flush/straight potential
+            let rankA = ranks[Math.floor(Math.random() * (ranks.length-2))];
+            let rankB = ranks[Math.min(ranks.indexOf(rankA)+1, ranks.length-1)];
+            let suit = suits[Math.floor(Math.random()*4)];
+            hand = [{rank: rankA, suit: suit}, {rank: rankB, suit: suit}];
+            let newBoard = generateUniqueCards(3, hand);
+            let newOuts = calculateOuts(hand, newBoard);
+            if(newOuts >= 4 && newOuts <= 14) {
+                board = newBoard;
+                outsRaw = newOuts;
+            }
+        }
+        return { hand, board, outs: outsRaw };
+    }
+
+    let currentState = {
+        hand: [],
+        board: [],
+        outs: 0,
+        pot: 0,
+        bet: 0,
+        requiredEquity: 0,
+        equity: 0
+    };
+
+    function renderCards(hand, board) {
+        const handContainer = document.getElementById('handCards');
+        const boardContainer = document.getElementById('boardCards');
+        handContainer.innerHTML = '';
+        boardContainer.innerHTML = '';
+        for(let card of hand) {
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'poker-card';
+            const suitColorClass = suitColor(card.suit);
+            cardDiv.innerHTML = `<div class="card-rank">${card.rank}</div><div class="card-suit ${suitColorClass}">${card.suit}</div>`;
+            handContainer.appendChild(cardDiv);
+        }
+        for(let card of board) {
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'poker-card';
+            const suitColorClass = suitColor(card.suit);
+            cardDiv.innerHTML = `<div class="card-rank">${card.rank}</div><div class="card-suit ${suitColorClass}">${card.suit}</div>`;
+            boardContainer.appendChild(cardDiv);
+        }
+    }
+
+    function generateScenario() {
+        const { hand, board, outs } = generateDrawHand();
+        // random pot size between 600 and 2400 (easy numbers)
+        let pot = Math.floor(Math.random() * 1800) + 800;
+        // bet between 1/3 pot to pot-sized
+        let fraction = [0.35, 0.5, 0.66, 0.75, 1.0][Math.floor(Math.random()*5)];
+        let bet = Math.floor(pot * fraction);
+        if(bet < 80) bet = 80;
+        let requiredEquity = (bet / (pot + bet)) * 100;
+        let equity = outs * 4;  // rule of 4 on flop!
+        if(equity > 85) equity = 85;
+        currentState = {
+            hand, board, outs,
+            pot, bet,
+            requiredEquity: parseFloat(requiredEquity.toFixed(1)),
+            equity: parseFloat(equity.toFixed(1)),
+            correctAnswer: equity >= requiredEquity
+        };
+        renderCards(hand, board);
+        document.getElementById('potSize').innerText = `$${currentState.pot}`;
+        document.getElementById('betAmount').innerText = `$${currentState.bet}`;
+        document.getElementById('questionText').innerHTML = `🎯 You have ${currentState.outs} outs → ~${currentState.equity}% equity.<br>Required equity: ${currentState.requiredEquity}%. Call?`;
+        document.getElementById('feedbackMsg').innerHTML = `🤔 Choose YES if ${currentState.equity}% ≥ ${currentState.requiredEquity}%.`;
+        document.getElementById('feedbackMsg').style.background = "#11180ec9";
+    }
+
+    function checkAnswer(choice) {
+        let isCorrect = (choice === 'yes') === currentState.correctAnswer;
+        const feedbackDiv = document.getElementById('feedbackMsg');
+        if(isCorrect) {
+            feedbackDiv.innerHTML = `✅ CORRECT! With ${currentState.outs} outs → ${currentState.equity}% equity. Required was ${currentState.requiredEquity}%. ${currentState.correctAnswer ? 'Profitable call.' : 'Good fold!'}`;
+            feedbackDiv.style.background = "#1e4d3ecc";
+        } else {
+            feedbackDiv.innerHTML = `❌ WRONG. You have ${currentState.outs} outs → ~${currentState.equity}% equity. Required ${currentState.requiredEquity}%. ${currentState.correctAnswer ? 'You should call.' : 'You should fold.'} Remember equity > required = call.`;
+            feedbackDiv.style.background = "#6b2e25cc";
+        }
+    }
+
+    document.getElementById('yesBtn').addEventListener('click', () => checkAnswer('yes'));
+    document.getElementById('noBtn').addEventListener('click', () => checkAnswer('no'));
+    document.getElementById('nextBtn').addEventListener('click', () => {
+        generateScenario();
+    });
+
+    // initial load
+    generateScenario();
+</script>
+</body>
+</html>
