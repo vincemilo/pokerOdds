@@ -23,7 +23,24 @@ function generateUniqueCards(count, excludeCards = []) {
     return cards;
 }
 
-// ----- CORRECTED OUTS DETECTION -----
+// ----- HAND STRENGTH DETECTION -----
+function getHandStrength(hand, board) {
+    let allRanks = [...hand.map(c => c.rank), ...board.map(c => c.rank)];
+    let rankCount = {};
+    allRanks.forEach(r => rankCount[r] = (rankCount[r] || 0) + 1);
+    
+    let hasTrips = Object.values(rankCount).some(c => c === 3);
+    let hasPair = Object.values(rankCount).some(c => c === 2);
+    let handRanks = hand.map(c => c.rank);
+    let hasPairWithBoard = hand.some(h => board.some(b => b.rank === h.rank));
+    
+    if (hasTrips) return { type: 'trips', message: '⚠️ TRIPS - Quiz not designed for this. Hit NEW HAND.' };
+    if (hasPair && hasPairWithBoard && !hasTrips) return { type: 'pair', message: '⚠️ PAIR - Quiz works best for pure draws. Hit NEW HAND.' };
+    if (!hasPairWithBoard) return { type: 'draw', message: '🎯 PURE DRAW - Good for outs quiz!' };
+    return { type: 'other', message: '⚠️ MADE HAND - Hit NEW HAND for draw practice.' };
+}
+
+// ----- OUTS DETECTION -----
 function countFlushOuts(hand, board) {
     let all = [...hand, ...board];
     let suitCount = { '♥':0, '♦':0, '♣':0, '♠':0 };
@@ -32,7 +49,6 @@ function countFlushOuts(hand, board) {
     for (let suit in suitCount) {
         let count = suitCount[suit];
         if (count >= 3) {
-            // 13 total cards per suit minus visible = remaining outs
             return 13 - count;
         }
     }
@@ -47,7 +63,6 @@ function getStraightOuts(hand, board) {
     
     if (sorted.length < 4) return 0;
     
-    // Check for open-ended (4 consecutive ranks)
     for (let i = 0; i <= sorted.length - 4; i++) {
         if (sorted[i+3] - sorted[i] === 3) {
             let lowComplete = sorted[i] - 1;
@@ -59,15 +74,11 @@ function getStraightOuts(hand, board) {
         }
     }
     
-    // Check for gutshot (4 cards with one gap)
     for (let i = 0; i <= sorted.length - 4; i++) {
         let totalGap = sorted[i+3] - sorted[i];
         if (totalGap === 4) {
-            // Find the missing internal rank
             for (let k = sorted[i] + 1; k < sorted[i+3]; k++) {
-                if (!rankSet.has(k)) {
-                    return 4;
-                }
+                if (!rankSet.has(k)) return 4;
             }
         }
     }
@@ -75,26 +86,30 @@ function getStraightOuts(hand, board) {
 }
 
 function calculateOuts(hand, board) {
+    // Only for pure draws - if there's a pair/trips, return 0 as signal
+    let handRanks = hand.map(c => c.rank);
+    let hasPairWithBoard = hand.some(h => board.some(b => b.rank === h.rank));
+    
+    if (hasPairWithBoard) return 0; // Signal that quiz should be skipped
+    
     let flush = countFlushOuts(hand, board);
     let straight = getStraightOuts(hand, board);
     let total = flush + straight;
     
     if (total === 0) {
-        let hasPair = hand.some(h => board.some(b => b.rank === h.rank));
         let overcardCount = hand.filter(h => {
             let hIdx = ranks.indexOf(h.rank);
             return board.every(b => hIdx > ranks.indexOf(b.rank));
         }).length;
         
-        if (hasPair) total = 2;
-        else if (overcardCount === 2) total = 6;
+        if (overcardCount === 2) total = 6;
         else if (overcardCount === 1) total = 3;
         else total = 0;
     }
-    return Math.min(total, 15);
+    return total;
 }
 
-// ----- EXPLANATION FUNCTION (Now shows exact flush math) -----
+// ----- EXPLANATION FUNCTION -----
 function explainOuts(hand, board, outs) {
     let all = [...hand, ...board];
     let suitCount = { '♥':0, '♦':0, '♣':0, '♠':0 };
@@ -114,7 +129,6 @@ function explainOuts(hand, board, outs) {
     }
     
     let straightOuts = getStraightOuts(hand, board);
-    let hasPair = hand.some(h => board.some(b => b.rank === h.rank));
     let overcardCount = hand.filter(h => {
         let hIdx = ranks.indexOf(h.rank);
         return board.every(b => hIdx > ranks.indexOf(b.rank));
@@ -123,7 +137,7 @@ function explainOuts(hand, board, outs) {
     let explanation = [];
     
     if (flushOuts > 0) {
-        explanation.push(`♣️ Flush draw: ${flushOuts} outs (${visibleFlush} ${flushSuit} visible, ${13 - visibleFlush} remain in deck)`);
+        explanation.push(`♣️ Flush draw: ${flushOuts} outs (${visibleFlush} ${flushSuit} visible, ${13 - visibleFlush} remain)`);
     }
     
     if (straightOuts === 8) {
@@ -132,14 +146,12 @@ function explainOuts(hand, board, outs) {
         explanation.push(`📏 Gutshot straight: 4 outs`);
     }
     
-    if (hasPair && flushOuts === 0 && straightOuts === 0) {
-        explanation.push(`🃏 Paired hand: 2 outs to improve`);
-    } else if (overcardCount === 2 && !hasPair && flushOuts === 0 && straightOuts === 0) {
+    if (overcardCount === 2 && flushOuts === 0 && straightOuts === 0) {
         explanation.push(`⬆️ Two overcards: 6 outs`);
-    } else if (overcardCount === 1 && !hasPair && flushOuts === 0 && straightOuts === 0) {
+    } else if (overcardCount === 1 && flushOuts === 0 && straightOuts === 0) {
         explanation.push(`⬆️ One overcard: 3 outs`);
-    } else if (flushOuts === 0 && straightOuts === 0 && !hasPair && overcardCount === 0) {
-        explanation.push(`⚠️ Complete miss - 0 outs`);
+    } else if (flushOuts === 0 && straightOuts === 0 && overcardCount === 0) {
+        explanation.push(`⚠️ No draw - 0 outs`);
     }
     
     if (explanation.length === 0 && outs > 0) {
@@ -156,6 +168,7 @@ let correctOuts = 0;
 let correctEquity = 0;
 let correctPotOdds = 0;
 let currentExplanation = "";
+let currentStrength = null;
 
 function renderCards(hand, board) {
     const handContainer = document.getElementById('handCards');
@@ -178,23 +191,57 @@ function renderCards(hand, board) {
     });
 }
 
+function updateStrengthBadge() {
+    const badge = document.getElementById('strengthBadge');
+    if (!badge) return;
+    
+    if (currentStrength.type === 'draw') {
+        badge.innerHTML = currentStrength.message;
+        badge.style.background = "#2a6b45";
+        badge.style.color = "#fff3cf";
+        badge.style.display = "inline-block";
+    } else {
+        badge.innerHTML = currentStrength.message;
+        badge.style.background = "#8b3a2a";
+        badge.style.color = "#ffe0b3";
+        badge.style.display = "inline-block";
+    }
+}
+
 function generatePlayableScenario() {
-    for (let attempts = 0; attempts < 25; attempts++) {
+    for (let attempts = 0; attempts < 30; attempts++) {
         let hand = generateUniqueCards(2);
         let board = generateUniqueCards(3, hand);
-        let outs = calculateOuts(hand, board);
-        if (outs >= 4 && outs <= 14) {
-            let pot = Math.floor(Math.random() * 1600) + 700;
-            let betOptions = [0.35, 0.45, 0.6, 0.75, 0.9];
-            let fraction = betOptions[Math.floor(Math.random() * betOptions.length)];
-            let bet = Math.floor(pot * fraction);
-            if (bet < 60) bet = 80;
-            return { hand, board, outs, pot, bet };
+        let strength = getHandStrength(hand, board);
+        
+        // Only accept pure draws (no pair with board)
+        if (strength.type === 'draw') {
+            let outs = calculateOuts(hand, board);
+            if (outs >= 4 && outs <= 14) {
+                let pot = Math.floor(Math.random() * 1600) + 700;
+                let betOptions = [0.35, 0.45, 0.6, 0.75, 0.9];
+                let fraction = betOptions[Math.floor(Math.random() * betOptions.length)];
+                let bet = Math.floor(pot * fraction);
+                if (bet < 60) bet = 80;
+                return { hand, board, outs, pot, bet, strength };
+            }
         }
     }
-    let hand = generateUniqueCards(2);
-    let board = generateUniqueCards(3, hand);
-    return { hand, board, outs: calculateOuts(hand, board), pot: 1200, bet: 600 };
+    // Fallback - force a flush draw
+    let suit = suits[Math.floor(Math.random() * 4)];
+    let hand = [
+        { rank: 'A', suit: suit },
+        { rank: 'K', suit: suit }
+    ];
+    let board = [
+        { rank: 'Q', suit: suit },
+        { rank: 'J', suit: suits.find(s => s !== suit) },
+        { rank: '2', suit: suits.find(s => s !== suit) }
+    ];
+    let outs = calculateOuts(hand, board);
+    let pot = 1200, bet = 600;
+    let strength = getHandStrength(hand, board);
+    return { hand, board, outs, pot, bet, strength };
 }
 
 function updateStepUI() {
@@ -209,6 +256,19 @@ function updateStepUI() {
 function resetQuizToStep1() {
     currentStep = 1;
     updateStepUI();
+    
+    if (currentStrength.type !== 'draw') {
+        // Disable quiz for made hands
+        document.getElementById('questionText').innerHTML = `⛔ PURE DRAWS ONLY<br><span style="font-size:0.9rem;">${currentStrength.message}</span>`;
+        document.getElementById('userAnswer').disabled = true;
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('feedbackMsg').innerHTML = `🔁 Click NEW HAND for a pure draw (flush/straight/overcards) to practice outs.`;
+        return;
+    }
+    
+    // Enable quiz for pure draws
+    document.getElementById('userAnswer').disabled = false;
+    document.getElementById('submitBtn').disabled = false;
     document.getElementById('questionText').innerHTML = `🔎 How many OUTS do you have?<br><span style="font-size:0.9rem;">(flush / straight draw, overcards)</span>`;
     document.getElementById('userAnswer').value = '';
     document.getElementById('feedbackMsg').innerHTML = `🤔 Count your outs.<br><span style="font-size:0.8rem; color:#dbb46a;">📖 ${currentExplanation}</span>`;
@@ -221,6 +281,9 @@ function loadNewHand() {
     document.getElementById('potDisplay').innerHTML = `$${currentHand.pot}`;
     document.getElementById('betDisplay').innerHTML = `$${currentHand.bet}`;
     
+    currentStrength = currentHand.strength;
+    updateStrengthBadge();
+    
     correctOuts = currentHand.outs;
     correctEquity = Math.min(99, correctOuts * 4);
     let requiredOdds = (currentHand.bet / (currentHand.pot + currentHand.bet)) * 100;
@@ -228,10 +291,14 @@ function loadNewHand() {
     
     currentExplanation = explainOuts(currentHand.hand, currentHand.board, correctOuts);
     resetQuizToStep1();
-    document.getElementById('submitBtn').disabled = false;
 }
 
 function handleSubmit() {
+    if (currentStrength.type !== 'draw') {
+        document.getElementById('feedbackMsg').innerHTML = '⚠️ This is not a pure draw. Click NEW HAND to practice outs.';
+        return;
+    }
+    
     let inputVal = parseFloat(document.getElementById('userAnswer').value);
     if (isNaN(inputVal)) {
         document.getElementById('feedbackMsg').innerHTML = '❌ Please enter a number.';
