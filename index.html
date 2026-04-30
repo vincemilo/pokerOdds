@@ -1,81 +1,77 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Poker Trainer: Count Your Outs</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div class="app-container">
-    <!-- Header with streak -->
-    <div class="header">
-        <span class="badge">🎯 OUTS TRAINER</span>
-        <div class="streak-box">
-            <span class="streak-label">🔥 STREAK</span>
-            <span class="streak-count" id="streakCount">0</span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Poker Drill Suite</title>
+    <link rel="stylesheet" href="core/styles.css" />
+    <style>
+      .menu-container {
+        max-width: 700px;
+        width: 100%;
+        background: #1e3a2a;
+        border-radius: 48px;
+        padding: 30px;
+        text-align: center;
+      }
+      .menu-title {
+        color: #f7e05e;
+        font-size: 1.8rem;
+        margin-bottom: 30px;
+      }
+      .drill-card {
+        background: #0f2a1c;
+        border-radius: 28px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: left;
+        border: 1px solid #c4a66a;
+      }
+      .drill-title {
+        color: #ffd966;
+        font-size: 1.3rem;
+        margin-bottom: 8px;
+      }
+      .drill-desc {
+        color: #c0b07a;
+        font-size: 0.85rem;
+        margin-bottom: 16px;
+      }
+      .drill-btn {
+        background: #4c8b5e;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 40px;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+      }
+      .drill-btn:active {
+        transform: translateY(2px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="menu-container">
+      <div class="menu-title">🎴 POKER DRILL SUITE</div>
+
+      <div class="drill-card">
+        <div class="drill-title">1️⃣ OUTS TRAINER</div>
+        <div class="drill-desc">
+          Count flush, straight, and overcard outs from any flop.
         </div>
-    </div>
+        <a href="outs-trainer/index.html" class="drill-btn">START →</a>
+      </div>
 
-    <!-- Board Area (Flop on top) -->
-    <div class="board-area">
-        <div class="section-label">🎴 THE FLOP</div>
-        <div class="card-row" id="boardCards"></div>
-    </div>
-
-    <!-- Hand Area (Your cards below) -->
-    <div class="hand-area">
-        <div class="section-label">🃏 YOUR HAND</div>
-        <div class="card-row" id="handCards"></div>
-    </div>
-
-    <!-- Made Hand Warning (appears when hand isn't a draw) -->
-    <div id="madeHandWarning" class="warning-badge" style="display: none;">
-        ⚠️ MADE HAND - Not a draw. Click NEXT for a new hand.
-    </div>
-
-    <!-- Question -->
-    <div class="question-area">
-        <div class="question-text" id="questionText">
-            How many OUTS do you have?
+      <div class="drill-card">
+        <div class="drill-title">2️⃣ POT ODDS TRAINER</div>
+        <div class="drill-desc">
+          Calculate required equity % from pot size and bet.
         </div>
+        <a href="pot-odds-trainer/index.html" class="drill-btn">START →</a>
+      </div>
     </div>
-
-    <!-- Answer Buttons (Complete set for all common outs) -->
-    <div class="button-grid" id="buttonGrid">
-        <button class="outs-btn" data-outs="2">2</button>
-        <button class="outs-btn" data-outs="3">3</button>
-        <button class="outs-btn" data-outs="4">4</button>
-        <button class="outs-btn" data-outs="6">6</button>
-        <button class="outs-btn" data-outs="8">8</button>
-        <button class="outs-btn" data-outs="9">9</button>
-        <button class="outs-btn" data-outs="10">10</button>
-        <button class="outs-btn" data-outs="12">12</button>
-        <button class="outs-btn" data-outs="14">14</button>
-        <button class="outs-btn" data-outs="15">15</button>
-    </div>
-
-    <!-- Feedback -->
-    <div class="feedback-area" id="feedbackArea">
-        👆 Click a number above to answer
-    </div>
-
-    <!-- Next Hand Button (Giant and Green) -->
-    <button class="next-btn" id="nextBtn">🔄 NEXT HAND</button>
-
-    <!-- Quick Reference (always visible) -->
-    <div class="reference">
-        <div class="ref-title">📖 QUICK REFERENCE</div>
-        <div class="ref-row">♣️ Flush draw (2 in hand + 2 on board): <strong>9 outs</strong></div>
-        <div class="ref-row">♣️ Flush draw (2 in hand + 1 on board): <strong>10 outs</strong></div>
-        <div class="ref-row">📏 Open-ended straight: <strong>8 outs</strong></div>
-        <div class="ref-row">📏 Gutshot straight: <strong>4 outs</strong></div>
-        <div class="ref-row">⬆️ Two overcards: <strong>6 outs</strong></div>
-        <div class="ref-row">⬆️ One overcard: <strong>3 outs</strong></div>
-        <div class="ref-row">🃏 Pair (improve to trips/boat): <strong>2 outs</strong></div>
-    </div>
-</div>
-
-<script src="script.js"></script>
-</body>
+  </body>
 </html>

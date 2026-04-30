@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=yes"
+    />
+    <title>Outs Trainer</title>
+    <link rel="stylesheet" href="../core/styles.css" />
+  </head>
+  <body>
+    <div class="drill-container">
+      <div class="header">
+        <span class="badge">🎯 OUTS TRAINER</span>
+        <div class="streak-box">
+          <span class="streak-label">🔥 STREAK</span>
+          <span class="streak-count" id="streakCount">0</span>
+        </div>
+      </div>
+
+      <div class="board-area">
+        <div class="section-label">🎴 THE FLOP</div>
+        <div class="card-row" id="boardCards"></div>
+      </div>
+
+      <div class="hand-area">
+        <div class="section-label">🃏 YOUR HAND</div>
+        <div class="card-row" id="handCards"></div>
+      </div>
+
+      <div class="question-area">
+        <div class="question-text" id="questionText">
+          How many OUTS do you have?
+        </div>
+      </div>
+
+      <div class="button-grid" id="buttonGrid">
+        <button class="action-btn" data-outs="2">2</button>
+        <button class="action-btn" data-outs="3">3</button>
+        <button class="action-btn" data-outs="4">4</button>
+        <button class="action-btn" data-outs="6">6</button>
+        <button class="action-btn" data-outs="8">8</button>
+        <button class="action-btn" data-outs="9">9</button>
+        <button class="action-btn" data-outs="10">10</button>
+        <button class="action-btn" data-outs="12">12</button>
+        <button class="action-btn" data-outs="14">14</button>
+      </div>
+
+      <div class="feedback-area" id="feedbackArea">
+        👆 Click a number above to answer
+      </div>
+
+      <button class="next-btn" id="nextBtn">🔄 NEXT HAND</button>
+
+      <div class="nav-buttons">
+        <a href="../index.html" class="nav-btn">← MAIN MENU</a>
+        <a href="../pot-odds-trainer/index.html" class="nav-btn">POT ODDS →</a>
+      </div>
+
+      <div class="reference">
+        <div class="ref-title">📖 QUICK REFERENCE</div>
+        <div class="ref-row">
+          Flush (2 hand + 2 board): <strong>9 outs</strong>
+        </div>
+        <div class="ref-row">
+          Flush (2 hand + 1 board): <strong>10 outs</strong>
+        </div>
+        <div class="ref-row">Open-ended straight: <strong>8 outs</strong></div>
+        <div class="ref-row">Gutshot straight: <strong>4 outs</strong></div>
+        <div class="ref-row">Two overcards: <strong>6 outs</strong></div>
+        <div class="ref-row">One overcard: <strong>3 outs</strong></div>
+        <div class="ref-row">
+          Pair (improve to trips): <strong>2 outs</strong>
+        </div>
+      </div>
+    </div>
+
+    <script src="../core/cards.js"></script>
+    <script src="outs.js"></script>
+  </body>
+</html>

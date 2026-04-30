@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=yes"
+    />
+    <title>Pot Odds Trainer</title>
+    <link rel="stylesheet" href="../core/styles.css" />
+  </head>
+  <body>
+    <div class="drill-container">
+      <div class="header">
+        <span class="badge">💰 POT ODDS TRAINER</span>
+        <div class="streak-box">
+          <span class="streak-label">🔥 STREAK</span>
+          <span class="streak-count" id="streakCount">0</span>
+        </div>
+      </div>
+
+      <div class="question-area" style="margin-bottom: 0">
+        <div class="question-text" id="potDisplay">Pot: $0</div>
+        <div
+          class="question-text"
+          id="betDisplay"
+          style="font-size: 1.3rem; margin-top: 8px"
+        >
+          Bet: $0
+        </div>
+      </div>
+
+      <div class="question-area">
+        <div class="question-text" id="questionText">
+          What % equity do you need to call?
+        </div>
+      </div>
+
+      <div class="button-grid" id="buttonGrid">
+        <!-- Buttons generated dynamically -->
+      </div>
+
+      <div class="feedback-area" id="feedbackArea">
+        👆 Click the correct percentage
+      </div>
+
+      <button class="next-btn" id="nextBtn">🔄 NEXT HAND</button>
+
+      <div class="nav-buttons">
+        <a href="../index.html" class="nav-btn">← MAIN MENU</a>
+        <a href="../outs-trainer/index.html" class="nav-btn">OUTS TRAINER →</a>
+      </div>
+
+      <div class="reference">
+        <div class="ref-title">📖 QUICK REFERENCE</div>
+        <div class="ref-row">
+          Bet 1/3 pot → <strong>25%</strong> equity needed
+        </div>
+        <div class="ref-row">
+          Bet 1/2 pot → <strong>33%</strong> equity needed
+        </div>
+        <div class="ref-row">
+          Bet 2/3 pot → <strong>40%</strong> equity needed
+        </div>
+        <div class="ref-row">
+          Bet 3/4 pot → <strong>43%</strong> equity needed
+        </div>
+        <div class="ref-row">
+          Bet full pot → <strong>50%</strong> equity needed
+        </div>
+      </div>
+    </div>
+
+    <script src="potodds.js"></script>
+  </body>
+</html>
