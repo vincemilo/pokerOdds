@@ -53,8 +53,8 @@ function countFlushOuts(hand, board) {
     
     for (let suit in suitCount) {
         let count = suitCount[suit];
-        if (count === 4) return 9;   // 4 of suit, need 1 more
-        if (count === 3) return 10;  // 3 of suit, need 2 more
+        if (count === 4) return 9;
+        if (count === 3) return 10;
     }
     return 0;
 }
@@ -92,6 +92,14 @@ function calculateOuts(hand, board) {
     let total = flush + straight;
     
     if (total === 0) {
+        // Check for pair (improve to trips: 2 outs)
+        let hasPair = hand.some(h => board.some(b => b.rank === h.rank));
+        if (hasPair) {
+            let pairRank = hand.find(h => board.some(b => b.rank === h.rank)).rank;
+            let remaining = 2; // 4 total of that rank, 2 visible (1 in hand + 1 on board)
+            return remaining;
+        }
+        
         let overcardCount = hand.filter(h => {
             let hIdx = ranks.indexOf(h.rank);
             return board.every(b => hIdx > ranks.indexOf(b.rank));
@@ -106,22 +114,28 @@ function calculateOuts(hand, board) {
 
 // ----- GENERATE PURE DRAW -----
 function generatePureDraw() {
-    for (let attempts = 0; attempts < 40; attempts++) {
+    for (let attempts = 0; attempts < 50; attempts++) {
         let hand = generateUniqueCards(2);
         let board = generateUniqueCards(3, hand);
         
         if (isMadeHand(hand, board)) continue;
         
         let outs = calculateOuts(hand, board);
-        if (outs >= 3 && outs <= 14 && outs !== 5 && outs !== 7 && outs !== 11 && outs !== 13) {
-            let validOuts = [3,4,6,8,9,10,12,14];
-            if (validOuts.includes(outs)) {
-                return { hand, board, outs };
-            }
+        // Accept all common outs values
+        let validOuts = [2,3,4,6,8,9,10,12,14,15];
+        if (validOuts.includes(outs) && outs > 0) {
+            return { hand, board, outs };
         }
     }
-    // Fallback
-    let hand = generateUniqueCards(2);
+    // Fallback - force a simple overcard hand
+    let highRank = ranks[Math.floor(Math.random() * 4) + 9]; // T,J,Q,K,A
+    let lowRank = ranks[Math.floor(Math.random() * 5)]; // 2-6
+    let suit1 = suits[Math.floor(Math.random() * 4)];
+    let suit2 = suits[Math.floor(Math.random() * 4)];
+    let hand = [
+        { rank: highRank, suit: suit1 },
+        { rank: lowRank, suit: suit2 }
+    ];
     let board = generateUniqueCards(3, hand);
     let outs = calculateOuts(hand, board);
     return { hand, board, outs };
@@ -173,6 +187,13 @@ function getExplanation(hand, board, outs) {
     if (straight === 8) return "Open-ended straight draw = 8 outs";
     if (straight === 4) return "Gutshot straight draw = 4 outs";
     
+    // Check for pair
+    let hasPair = hand.some(h => board.some(b => b.rank === h.rank));
+    if (hasPair && outs === 2) {
+        let pairRank = hand.find(h => board.some(b => b.rank === h.rank)).rank;
+        return `Pair of ${pairRank}s - 2 outs to make trips`;
+    }
+    
     let overcardCount = hand.filter(h => {
         let hIdx = ranks.indexOf(h.rank);
         return board.every(b => hIdx > ranks.indexOf(b.rank));
@@ -181,7 +202,11 @@ function getExplanation(hand, board, outs) {
     if (overcardCount === 2) return "Two overcards = 6 outs";
     if (overcardCount === 1) return "One overcard = 3 outs";
     
-    return "Mixed or combo draw";
+    if (outs === 12) return "Combo draw (flush + straight) = ~12 outs";
+    if (outs === 14) return "Combo draw + overcards = ~14 outs";
+    if (outs === 15) return "Massive draw (flush + straight + overcards) = 15+ outs";
+    
+    return "Draw - count carefully";
 }
 
 function loadNewHand() {
