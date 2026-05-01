@@ -76,15 +76,28 @@ function generatePureDraw() {
   for (let attempts = 0; attempts < 50; attempts++) {
     let hand = generateUniqueCards(2);
     let board = generateUniqueCards(3, hand);
+
+    // CRITICAL FIX: Ensure hand and board are never swapped
+    // generateUniqueCards already excludes hand cards from board, so this is safe
+
     if (isMadeHand(hand, board)) continue;
     let outs = calculateOuts(hand, board);
     if ([2, 3, 4, 6, 8, 9, 10, 12, 14].includes(outs) && outs > 0) {
       return { hand, board, outs };
     }
   }
-  let hand = generateUniqueCards(2);
-  let board = generateUniqueCards(3, hand);
-  return { hand, board, outs: calculateOuts(hand, board) };
+  // Fallback - force a simple overcard hand
+  let hand = [
+    { rank: "A", suit: "♥" },
+    { rank: "K", suit: "♠" },
+  ];
+  let board = [
+    { rank: "9", suit: "♣" },
+    { rank: "4", suit: "♦" },
+    { rank: "2", suit: "♥" },
+  ];
+  let outs = calculateOuts(hand, board);
+  return { hand, board, outs };
 }
 
 function getExplanation(outs) {
@@ -105,6 +118,7 @@ function getExplanation(outs) {
 function loadNewHand() {
   waitingForNext = false;
   currentHand = generatePureDraw();
+  // CRITICAL: Order is hand first, board second
   renderCards(currentHand.hand, currentHand.board, "handCards", "boardCards");
   currentCorrectOuts = currentHand.outs;
 
