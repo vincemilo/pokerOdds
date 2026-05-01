@@ -28,8 +28,20 @@ function generateUniqueCards(count, excludeCards = []) {
 function renderCards(hand, board, handContainerId, boardContainerId) {
   const handContainer = document.getElementById(handContainerId);
   const boardContainer = document.getElementById(boardContainerId);
+
+  // Clear both containers
   handContainer.innerHTML = "";
   boardContainer.innerHTML = "";
+
+  // Double-check we're rendering the right arrays
+  console.log(
+    "Rendering HAND:",
+    hand.map((c) => c.rank + c.suit),
+  );
+  console.log(
+    "Rendering BOARD:",
+    board.map((c) => c.rank + c.suit),
+  );
 
   hand.forEach((c) => {
     let div = document.createElement("div");

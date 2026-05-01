@@ -36,18 +36,29 @@ function getStraightOuts(hand, board) {
   let sorted = [...rankIndices].sort((a, b) => a - b);
   if (sorted.length < 4) return 0;
 
+  // Check for open-ended (4 consecutive ranks)
   for (let i = 0; i <= sorted.length - 4; i++) {
     if (sorted[i + 3] - sorted[i] === 3) {
-      let lowOut = sorted[i] - 1;
-      let highOut = sorted[i + 3] + 1;
+      // Found 4 consecutive
+      let lowComplete = sorted[i] - 1;
+      let highComplete = sorted[i + 3] + 1;
       let outs = 0;
-      if (lowOut >= 0 && !rankIndices.has(lowOut)) outs += 4;
-      if (highOut <= 12 && !rankIndices.has(highOut)) outs += 4;
-      if (outs === 8) return 8;
+      if (lowComplete >= 0 && !rankIndices.has(lowComplete)) outs += 4;
+      if (highComplete <= 12 && !rankIndices.has(highComplete)) outs += 4;
+      if (outs > 0) return outs;
     }
   }
+
+  // Check for gutshot (4 cards with one missing internal card)
+  // Example: A,K,Q,J (ranks 12,11,10,9) - no gap, that's open-ended already caught
+  // Gutshot example: A,K,Q,10 (ranks 12,11,10,8) - missing the J (rank 9)
   for (let i = 0; i <= sorted.length - 4; i++) {
-    if (sorted[i + 3] - sorted[i] === 4) return 4;
+    let start = sorted[i];
+    let end = sorted[i + 3];
+    if (end - start === 4) {
+      // There's exactly one rank missing in between
+      return 4;
+    }
   }
   return 0;
 }
@@ -55,7 +66,15 @@ function getStraightOuts(hand, board) {
 function calculateOuts(hand, board) {
   let flush = countFlushOuts(hand, board);
   let straight = getStraightOuts(hand, board);
+
+  // Count overlapping outs (cards that complete both)
+  // For simplicity, just take the maximum since straight+flush is usually >15
   let total = flush + straight;
+
+  // Simple overlap deduction - if both draws exist, subtract 1-2 outs
+  if (flush > 0 && straight > 0) {
+    total = Math.min(flush + straight - 1, 15);
+  }
 
   if (total === 0) {
     let hasPair = hand.some((h) => board.some((b) => b.rank === h.rank));
@@ -70,7 +89,7 @@ function calculateOuts(hand, board) {
     else if (overcardCount === 1) total = 3;
     else total = 0;
   }
-  return total;
+  return Math.min(total, 15);
 }
 
 // SAFE GENERATION - explicitly separate hand and board
