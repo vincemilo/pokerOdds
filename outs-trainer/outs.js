@@ -1,4 +1,5 @@
 let currentHand = null;
+let currentBoard = null;
 let currentCorrectOuts = 0;
 let streak = 0;
 let waitingForNext = false;
@@ -72,13 +73,37 @@ function calculateOuts(hand, board) {
   return total;
 }
 
+// SAFE GENERATION - explicitly separate hand and board
 function generatePureDraw() {
   for (let attempts = 0; attempts < 50; attempts++) {
-    let hand = generateUniqueCards(2);
-    let board = generateUniqueCards(3, hand);
+    // Generate 2 hand cards
+    let hand = [];
+    while (hand.length < 2) {
+      let newCard = {
+        rank: RANKS[Math.floor(Math.random() * RANKS.length)],
+        suit: SUITS[Math.floor(Math.random() * 4)],
+      };
+      let duplicate = hand.some(
+        (c) => c.rank === newCard.rank && c.suit === newCard.suit,
+      );
+      if (!duplicate) hand.push(newCard);
+    }
 
-    // CRITICAL FIX: Ensure hand and board are never swapped
-    // generateUniqueCards already excludes hand cards from board, so this is safe
+    // Generate 3 board cards (different from hand)
+    let board = [];
+    while (board.length < 3) {
+      let newCard = {
+        rank: RANKS[Math.floor(Math.random() * RANKS.length)],
+        suit: SUITS[Math.floor(Math.random() * 4)],
+      };
+      let inHand = hand.some(
+        (c) => c.rank === newCard.rank && c.suit === newCard.suit,
+      );
+      let duplicate = board.some(
+        (c) => c.rank === newCard.rank && c.suit === newCard.suit,
+      );
+      if (!inHand && !duplicate) board.push(newCard);
+    }
 
     if (isMadeHand(hand, board)) continue;
     let outs = calculateOuts(hand, board);
@@ -86,15 +111,16 @@ function generatePureDraw() {
       return { hand, board, outs };
     }
   }
-  // Fallback - force a simple overcard hand
+
+  // Fallback - explicit safe hand
   let hand = [
     { rank: "A", suit: "♥" },
-    { rank: "K", suit: "♠" },
+    { rank: "K", suit: "♥" },
   ];
   let board = [
+    { rank: "2", suit: "♥" },
     { rank: "9", suit: "♣" },
     { rank: "4", suit: "♦" },
-    { rank: "2", suit: "♥" },
   ];
   let outs = calculateOuts(hand, board);
   return { hand, board, outs };
@@ -115,12 +141,35 @@ function getExplanation(outs) {
   return explanations[outs] || `${outs} outs`;
 }
 
+function renderCards(hand, board) {
+  const handContainer = document.getElementById("handCards");
+  const boardContainer = document.getElementById("boardCards");
+  handContainer.innerHTML = "";
+  boardContainer.innerHTML = "";
+
+  hand.forEach((c) => {
+    let div = document.createElement("div");
+    div.className = "poker-card";
+    div.innerHTML = `<div class="card-rank">${c.rank}</div><div class="card-suit ${suitColor(c.suit)}">${c.suit}</div>`;
+    handContainer.appendChild(div);
+  });
+
+  board.forEach((c) => {
+    let div = document.createElement("div");
+    div.className = "poker-card";
+    div.innerHTML = `<div class="card-rank">${c.rank}</div><div class="card-suit ${suitColor(c.suit)}">${c.suit}</div>`;
+    boardContainer.appendChild(div);
+  });
+}
+
 function loadNewHand() {
   waitingForNext = false;
-  currentHand = generatePureDraw();
-  // CRITICAL: Order is hand first, board second
-  renderCards(currentHand.hand, currentHand.board, "handCards", "boardCards");
-  currentCorrectOuts = currentHand.outs;
+  let generated = generatePureDraw();
+  currentHand = generated.hand;
+  currentBoard = generated.board;
+  currentCorrectOuts = generated.outs;
+
+  renderCards(currentHand, currentBoard);
 
   document.getElementById("questionText").innerHTML =
     "How many OUTS do you have?";
@@ -168,13 +217,17 @@ function checkAnswer(selectedOuts) {
   }
 }
 
+// Re-attach event listeners (they get lost if DOM changes)
 document.querySelectorAll(".action-btn").forEach((btn) => {
+  btn.removeEventListener("click", () => {});
   btn.addEventListener("click", () => {
     checkAnswer(parseInt(btn.getAttribute("data-outs")));
   });
 });
 
+document.getElementById("nextBtn").removeEventListener("click", loadNewHand);
 document
   .getElementById("nextBtn")
   .addEventListener("click", () => loadNewHand());
+
 loadNewHand();
