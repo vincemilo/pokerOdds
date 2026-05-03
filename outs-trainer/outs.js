@@ -64,32 +64,33 @@ function getStraightOuts(hand, board) {
 }
 
 function calculateOuts(hand, board) {
-  let flush = countFlushOuts(hand, board);
-  let straight = getStraightOuts(hand, board);
-
-  // Count overlapping outs (cards that complete both)
-  // For simplicity, just take the maximum since straight+flush is usually >15
-  let total = flush + straight;
-
-  // Simple overlap deduction - if both draws exist, subtract 1-2 outs
-  if (flush > 0 && straight > 0) {
-    total = Math.min(flush + straight - 1, 15);
-  }
-
-  if (total === 0) {
-    let hasPair = hand.some((h) => board.some((b) => b.rank === h.rank));
-    if (hasPair) return 2;
-
-    let overcardCount = hand.filter((h) => {
-      let hIdx = RANKS.indexOf(h.rank);
-      return board.every((b) => hIdx > RANKS.indexOf(b.rank));
+    let flush = countFlushOuts(hand, board);
+    let straight = getStraightOuts(hand, board);
+    let total = flush + straight;
+    
+    // Add overcards even if we already have draws
+    let overcardCount = hand.filter(h => {
+        let hIdx = RANKS.indexOf(h.rank);
+        return board.every(b => hIdx > RANKS.indexOf(b.rank));
     }).length;
-
-    if (overcardCount === 2) total = 6;
-    else if (overcardCount === 1) total = 3;
-    else total = 0;
-  }
-  return Math.min(total, 15);
+    
+    if (overcardCount === 2) total += 6;
+    else if (overcardCount === 1) total += 3;
+    
+    // Check for pair (improve to trips)
+    let hasPair = hand.some(h => board.some(b => b.rank === h.rank));
+    if (hasPair && flush === 0 && straight === 0) {
+        total = 2; // Override - pair is the only draw
+    } else if (hasPair) {
+        total += 2; // Add pair improvement to existing draws
+    }
+    
+    // Adjust for overlap (cards that complete multiple draws)
+    if (flush > 0 && straight > 0) {
+        total = Math.min(total - 1, 15);
+    }
+    
+    return Math.min(total, 15);
 }
 
 // SAFE GENERATION - explicitly separate hand and board
