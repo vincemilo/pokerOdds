@@ -79,15 +79,6 @@ function getStraightOuts(hand, board) {
     
     return 0;
 }
-    
-    // Check for gutshot (4 cards with one missing internal rank)
-    for (let i = 0; i <= sorted.length - 4; i++) {
-        if (sorted[i+3] - sorted[i] === 4) {
-            return 4;
-        }
-    }
-    return 0;
-}
 
 // ----- MAIN OUTS CALCULATOR (FIXED) -----
 function calculateOuts(hand, board) {
