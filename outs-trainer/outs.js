@@ -37,12 +37,31 @@ function countFlushOuts(hand, board) {
 function getStraightOuts(hand, board) {
     let allCards = [...hand, ...board];
     let rankIndices = new Set();
-    allCards.forEach(c => rankIndices.add(RANKS.indexOf(c.rank)));
-    let sorted = [...rankIndices].sort((a,b) => a-b);
     
+    allCards.forEach(c => {
+        let idx = RANKS.indexOf(c.rank);
+        rankIndices.add(idx);
+    });
+    
+    // Check for Ace-low straight possibilities
+    let hasAce = [...allCards].some(c => c.rank === 'A');
+    let has2 = [...allCards].some(c => c.rank === '2');
+    let has3 = [...allCards].some(c => c.rank === '3');
+    let has4 = [...allCards].some(c => c.rank === '4');
+    let has5 = [...allCards].some(c => c.rank === '5');
+    
+    // Missing the 2
+    if (hasAce && has3 && has4 && has5 && !has2) return 4;
+    // Missing the 3
+    if (hasAce && has2 && has4 && has5 && !has3) return 4;
+    // Missing the 4
+    if (hasAce && has2 && has3 && has5 && !has4) return 4;
+    // Missing the 5
+    if (hasAce && has2 && has3 && has4 && !has5) return 4;
+    
+    let sorted = [...rankIndices].sort((a,b) => a-b);
     if (sorted.length < 4) return 0;
     
-    // Check for open-ended (4 consecutive ranks)
     for (let i = 0; i <= sorted.length - 4; i++) {
         if (sorted[i+3] - sorted[i] === 3) {
             let lowOut = sorted[i] - 1;
@@ -53,6 +72,13 @@ function getStraightOuts(hand, board) {
             if (outs > 0) return outs;
         }
     }
+    
+    for (let i = 0; i <= sorted.length - 4; i++) {
+        if (sorted[i+3] - sorted[i] === 4) return 4;
+    }
+    
+    return 0;
+}
     
     // Check for gutshot (4 cards with one missing internal rank)
     for (let i = 0; i <= sorted.length - 4; i++) {
