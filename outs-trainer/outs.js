@@ -17,9 +17,17 @@ function isOvercard(card, board) {
 function flushOuts(hand, board) {
     for (let suit of SUITS) {
         let inHand = hand.filter(c => c.suit === suit).length;
-        let total = hand.filter(c => c.suit === suit).length + board.filter(c => c.suit === suit).length;
+        let onBoard = board.filter(c => c.suit === suit).length;
+        let total = inHand + onBoard;
+        
+        // Case 1: 2 in hand + 1+ on board
         if (inHand >= 2 && total >= 3) {
             return total === 3 ? 10 : 9;
+        }
+        
+        // Case 2: 1 in hand + 2 on board (you need 2 more)
+        if (inHand === 1 && onBoard >= 2 && total >= 3) {
+            return 10;
         }
     }
     return 0;
