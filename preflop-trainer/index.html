@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Preflop Range Trainer</title>
+    <link rel="stylesheet" href="../core/styles.css">
+    <style>
+        .mode-selector {
+            background: #0f2a1c;
+            border-radius: 28px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .mode-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        .mode-btn {
+            background: #2c2b26;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            color: #ffecb3;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .mode-btn.active {
+            background: #4c8b5e;
+            color: white;
+            box-shadow: 0 2px 0 #1f4a2e;
+        }
+        .position-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .pos-btn {
+            background: #2c2b26;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            color: #c0b07a;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .pos-btn.active {
+            background: #f7e05e;
+            color: #1f3a1a;
+        }
+        .pos-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .current-pos {
+            text-align: center;
+            margin: 16px 0;
+            padding: 8px;
+            background: #00000055;
+            border-radius: 40px;
+            font-size: 1.1rem;
+        }
+        .ref-panel {
+            background: #0f2a1c;
+            border-radius: 28px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        .ref-title {
+            color: #f7e05e;
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        .ref-row {
+            color: #c0b07a;
+            font-size: 0.7rem;
+            padding: 4px 0;
+            border-bottom: 1px dotted #3a5a2a;
+            display: flex;
+            justify-content: space-between;
+        }
+        .ref-row strong {
+            color: #ffd966;
+        }
+        .highlight {
+            background: #2a6b45;
+            border-radius: 20px;
+            padding: 0 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="drill-container">
+    <div class="header">
+        <span class="badge">📊 PREFLOP RANGE TRAINER</span>
+        <div class="streak-box">
+            <span class="streak-label">🔥 STREAK</span>
+            <span class="streak-count" id="streakCount">0</span>
+        </div>
+    </div>
+
+    <!-- Mode Selector -->
+    <div class="mode-selector">
+        <div class="mode-buttons">
+            <button class="mode-btn" id="singleModeBtn">🎯 SINGLE POSITION</button>
+            <button class="mode-btn" id="mixedModeBtn">🔄 MIXED MODE</button>
+        </div>
+        <div class="position-buttons" id="positionButtons">
+            <button class="pos-btn" data-pos="UTG">UTG</button>
+            <button class="pos-btn" data-pos="MP">MP</button>
+            <button class="pos-btn" data-pos="CO">CO</button>
+            <button class="pos-btn" data-pos="BTN">BTN</button>
+            <button class="pos-btn" data-pos="SB">SB</button>
+            <button class="pos-btn" data-pos="BB">BB</button>
+        </div>
+    </div>
+
+    <!-- Current Position Display -->
+    <div class="current-pos" id="currentPosDisplay">
+        📍 Position: UTG
+    </div>
+
+    <!-- Hand Display (uses card styling from core) -->
+    <div class="hand-area" style="margin-bottom: 20px;">
+        <div class="section-label">🃏 YOUR HAND</div>
+        <div class="card-row" id="handCards"></div>
+    </div>
+
+    <!-- Question -->
+    <div class="question-area">
+        <div class="question-text" id="questionText">
+            Play or Fold?
+        </div>
+    </div>
+
+    <!-- Play/Fold Buttons -->
+    <div class="button-grid" style="grid-template-columns: 1fr 1fr;">
+        <button class="action-btn" id="playBtn" style="background: #2a6b45; box-shadow: 0 5px 0 #1a4a2e;">✅ PLAY</button>
+        <button class="action-btn" id="foldBtn" style="background: #8b3a2a; box-shadow: 0 5px 0 #5a2016;">❌ FOLD</button>
+    </div>
+
+    <!-- Feedback -->
+    <div class="feedback-area" id="feedbackArea">
+        👆 Click PLAY or FOLD
+    </div>
+
+    <button class="next-btn" id="nextBtn">🔄 NEXT HAND</button>
+
+    <div class="nav-buttons">
+        <a href="../index.html" class="nav-btn">← MAIN MENU</a>
+        <a href="../outs-trainer/index.html" class="nav-btn">OUTS TRAINER →</a>
+        <a href="../pot-odds-trainer/index.html" class="nav-btn">POT ODDS →</a>
+    </div>
+
+    <!-- Reference Panel (always visible) -->
+    <div class="ref-panel">
+        <div class="ref-title">📖 PREFLOP RANGES (RFI - Raise First In)</div>
+        <div class="ref-row" id="refUTG"><strong>UTG:</strong> 77+, ATs+, AJo+, KQs</div>
+        <div class="ref-row" id="refMP"><strong>MP:</strong> 55+, A9s+, ATo+, KJo+, QJs</div>
+        <div class="ref-row" id="refCO"><strong>CO:</strong> 22+, A2s+, A9o+, K9o+, Q9o+, J9o+, 54s+</div>
+        <div class="ref-row" id="refBTN"><strong>BTN:</strong> 22+, A2s+, A2o+, K2s+, K7o+, Q5s+, Q8o+, J7s+, J8o+, T7s+, T8o+, 97s+, 86s+, 75s+, 64s+, 54s+</div>
+        <div class="ref-row" id="refSB"><strong>SB:</strong> 22+, A2s+, A7o+, K2s+, K9o+, Q5s+, Q9o+, J7s+, J9o+, T7s+, T9o+, 97s+, 86s+, 75s+, 64s+</div>
+        <div class="ref-row" id="refBB"><strong>BB:</strong> Defend wide vs small raise (not for RFI)</div>
+    </div>
+</div>
+
+<script src="../core/cards.js"></script>
+<script src="preflop.js"></script>
+</body>
+</html>
